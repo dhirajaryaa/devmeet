@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevMeet - Socket.IO + Express</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: #0d1117;
+        color: #e6edf3;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      main { width: min(640px, 92vw); }
+      h1 { font-size: 1.1rem; margin: 0 0 .25rem; }
+      #status { font-size: .8rem; margin-bottom: 1rem; }
+      .on { color: #3fb950; }
+      .off { color: #f85149; }
+      #log {
+        height: 320px;
+        overflow-y: auto;
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        padding: .75rem;
+        background: #161b22;
+        font-size: .85rem;
+        line-height: 1.5;
+      }
+      .msg b { color: #58a6ff; }
+      .sys { color: #8b949e; }
+      form { display: flex; gap: .5rem; margin-top: .75rem; }
+      input {
+        flex: 1;
+        padding: .6rem .7rem;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        background: #0d1117;
+        color: inherit;
+        font: inherit;
+      }
+      input[name="name"] { max-width: 120px; }
+      button {
+        padding: .6rem 1rem;
+        border-radius: 6px;
+        border: 0;
+        background: #238636;
+        color: #fff;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>DevMeet - Socket.IO + Express</h1>
+      <div id="status" class="off">connecting...</div>
+      <div id="log"></div>
+      <form id="form">
+        <input name="name" placeholder="name" autocomplete="off" />
+        <input name="text" placeholder="message..." autocomplete="off" required />
+        <button type="submit">Send</button>
+      </form>
+    </main>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <script>
+      const log = document.getElementById('log');
+      const status = document.getElementById('status');
+      const form = document.getElementById('form');
+
+      const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+      const socketPath = isLocal ? '/socket.io' : '/api/socket/socket.io';
+
+      const socket = io({
+        path: socketPath,
+        transports: ['websocket'],
+      });
+
+      function add(text, cls = '') {
+        const div = document.createElement('div');
+        div.className = cls;
+        div.innerHTML = text;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      socket.on('connect', () => {
+        status.textContent = `connected (${socket.id}) via ${socket.io.engine.transport.name}`;
+        status.className = 'on';
+      });
+
+      socket.on('disconnect', (reason) => {
+        status.textContent = `disconnected: ${reason} - reconnecting...`;
+        status.className = 'off';
+      });
+
+      socket.io.on('reconnect', () => add('reconnected', 'sys'));
+      socket.on('connect_error', (err) => add(`connect_error: ${err.message}`, 'sys'));
+
+      socket.on('system', (data) => add(`* ${data.message}`, 'sys'));
+
+      socket.on('chat:message', (m) => {
+        add(`<b>${escapeHtml(m.name)}</b>: ${escapeHtml(m.text)}`, 'msg');
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = new FormData(form);
+        socket.emit('chat:message', {
+          name: data.get('name') || 'anon',
+          text: data.get('text'),
+        });
+        form.elements.text.value = '';
+      });
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+        );
+      }
+    </script>
+  </body>
+</html>
