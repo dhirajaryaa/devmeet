@@ -5,11 +5,11 @@
   "type": "module",
   "description": "Minimal Socket.IO + Express app that runs locally and on Vercel Functions (WebSockets beta).",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js"
+    "dev": "node scripts/dev.js",
+    "start": "node scripts/dev.js"
   },
   "dependencies": {
     "express": "^4.21.2",

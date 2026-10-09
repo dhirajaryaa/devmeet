@@ -1,0 +1,5 @@
+# Only the Vercel Function and its imports are needed in the cloud build.
+# The local dev server lives in scripts/ and must not be treated as the
+# project entrypoint (Vercel otherwise fails with "No entrypoint found
+# which imports express").
+scripts/

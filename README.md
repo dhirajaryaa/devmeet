@@ -15,8 +15,8 @@ It runs the **same code** locally and on Vercel Functions.
 ```
 api/socket.js      Vercel Function (WebSocket endpoint) — exports the http.Server
 lib/realtime.js    Shared Express + Socket.IO factory (used by local + Vercel)
-server.js          Local dev server (calls server.listen)
-public/index.html  Frontend (connects with transports: ['websocket'])
+scripts/dev.js     Local dev server (calls server.listen) — ignored by Vercel
+public/index.html  Chat UI (connects with transports: ['websocket'])
 vercel.json        Sets maxDuration for the socket Function
 ```
 
@@ -97,7 +97,7 @@ across instances.
 
 ## Local vs Vercel differences
 
-| | Local (`server.js`) | Vercel (`api/socket.js`) |
+| | Local (`scripts/dev.js`) | Vercel (`api/socket.js`) |
 | --- | --- | --- |
 | Listen | `server.listen(PORT)` | Vercel manages the server; do **not** listen |
 | Path | `/socket.io` | `/api/socket/socket.io` (prefix stripped server-side) |
