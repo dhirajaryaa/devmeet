@@ -63,27 +63,28 @@ Two things are required for Socket.IO:
    ```js
    const socket = io({ transports: ['websocket'] });
    ```
-2. **Route Socket.IO to the Function.** A non-Next `api/` Function only matches
-   its exact path (`/api/socket`); sub-paths like `/api/socket/socket.io/...`
-   404 at Vercel's routing layer before they reach the Function. So
-   `vercel.json` rewrites the default Socket.IO path to the Function:
-   ```json
-   "rewrites": [
-     { "source": "/socket.io", "destination": "/api/socket" },
-     { "source": "/socket.io/:path*", "destination": "/api/socket" }
-   ]
-   ```
-   The client keeps the default path, so **the same code works locally and on
-   Vercel**:
+2. **Point the client at the Function's exact path.** A non-Next `api/`
+   Function is matched at its exact route (`/api/socket`); sub-paths like
+   `/api/socket/socket.io/...` 404 at Vercel's router. So on Vercel the client
+   uses `path: '/api/socket'`, which makes Socket.IO request
+   `/api/socket/?EIO=4&transport=websocket` — that upgrade reaches the Function.
    ```js
-   const socket = io({ transports: ['websocket'] });
+   const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
+   const socket = io({
+     path: isLocal ? '/socket.io' : '/api/socket',
+     transports: ['websocket'],
+   });
    ```
-   Server-side, `lib/realtime.js` normalizes the Engine.IO URL (on both the
-   Express request and the raw `upgrade` event) so it works whether Vercel
-   passes the original or the rewritten path.
+   Server-side, `lib/realtime.js` normalizes the Engine.IO URL on both the
+   Express request and the raw `upgrade` event, so it works whichever path
+   Vercel forwards.
 
-Verified: `/socket.io`, `/api/socket`, and `/api/socket/socket.io` all return
-`HTTP/1.1 101 Switching Protocols`.
+Verified end-to-end against `devmeet-4cli.vercel.app`: a real `socket.io-client`
+connects with `path: '/api/socket'`, receives `connected`, and gets its own
+broadcast message back.
+
+> Note: HTTP long-polling (`transport=polling`) does **not** route to the
+> Function on Vercel, so websocket-only transport is mandatory.
 
 ## Vercel WebSocket behavior — the important limits
 
