@@ -39,7 +39,13 @@ pnpm dlx vercel --prod # production deploy
 ```
 
 Or just push to GitHub and import the repo at https://vercel.com/new.
-Vercel auto-detects the `api/` directory as Functions and `public/` as static output.
+Vercel uses the `api/` directory as Functions and `public/` as static output.
+
+> **Why `"framework": null` in `vercel.json`?** Because `express` is a dependency,
+> Vercel's framework detection picks the **Express preset**, which looks for a
+> root `app.js`/`server.js` and fails with `No entrypoint found`. Setting
+> `framework: null` disables that detection so the `api/` (Functions) +
+> `public/` (static) layout is used instead.
 
 > **Requirement:** WebSockets need **Fluid Compute**, which is on by default for
 > projects created on/after **April 23, 2025**. For older projects, enable it in
