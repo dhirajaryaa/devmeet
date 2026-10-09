@@ -334,10 +334,9 @@
       const form = document.getElementById("form");
       const sendBtn = document.getElementById("send");
 
-      const isLocal = ["localhost", "127.0.0.1", "::1"].includes(location.hostname);
-      const socketPath = isLocal ? "/socket.io" : "/api/socket/socket.io";
-
-      const socket = io({ path: socketPath, transports: ["websocket"] });
+      // Same origin, default "/socket.io" path. On Vercel a rewrite maps it to
+      // the api/socket Function. Websocket transport is required on Vercel.
+      const socket = io({ transports: ["websocket"] });
 
       const escapeHtml = (s) =>
         String(s).replace(

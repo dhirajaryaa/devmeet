@@ -54,30 +54,36 @@ Vercel uses the `api/` directory as Functions and `public/` as static output.
 ## Does it actually work on Vercel?
 
 **Yes** — since **June 22, 2026** Vercel Functions support WebSockets in **public
-beta on all plans** (Node, Bun, Python). It runs on Fluid Compute. Socket.IO is
-supported, with two rules:
+beta on all plans** (Node, Bun, Python). It runs on Fluid Compute.
 
-1. **The client must force the WebSocket transport.** Socket.IO defaults to HTTP
-   long-polling first, which does not work on Vercel Functions.
+Two things are required for Socket.IO:
+
+1. **Force the WebSocket transport** — Socket.IO defaults to HTTP long-polling
+   first, which does not work on Vercel Functions.
    ```js
    const socket = io({ transports: ['websocket'] });
    ```
-2. **The client path includes the function prefix.** Vercel strips the
-   `/api/socket` prefix before forwarding to the Function, so inside the Function
-   Socket.IO keeps its default path. The browser connects at:
+2. **Route Socket.IO to the Function.** A non-Next `api/` Function only matches
+   its exact path (`/api/socket`); sub-paths like `/api/socket/socket.io/...`
+   404 at Vercel's routing layer before they reach the Function. So
+   `vercel.json` rewrites the default Socket.IO path to the Function:
+   ```json
+   "rewrites": [
+     { "source": "/socket.io", "destination": "/api/socket" },
+     { "source": "/socket.io/:path*", "destination": "/api/socket" }
+   ]
    ```
-   /api/socket/socket.io
+   The client keeps the default path, so **the same code works locally and on
+   Vercel**:
+   ```js
+   const socket = io({ transports: ['websocket'] });
    ```
+   Server-side, `lib/realtime.js` normalizes the Engine.IO URL (on both the
+   Express request and the raw `upgrade` event) so it works whether Vercel
+   passes the original or the rewritten path.
 
-`public/index.html` handles both automatically:
-
-```js
-const isLocal = ['localhost', '127.0.0.1', '::1'].includes(location.hostname);
-const socketPath = isLocal ? '/socket.io' : '/api/socket/socket.io';
-const socket = io({ path: socketPath, transports: ['websocket'] });
-```
-
-Verified locally: the upgrade returns `HTTP/1.1 101 Switching Protocols`.
+Verified: `/socket.io`, `/api/socket`, and `/api/socket/socket.io` all return
+`HTTP/1.1 101 Switching Protocols`.
 
 ## Vercel WebSocket behavior — the important limits
 
